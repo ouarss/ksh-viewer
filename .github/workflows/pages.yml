@@ -1,0 +1,50 @@
+name: Deploy to GitHub Pages
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v7
+
+      # Active Pages (source « GitHub Actions ») au premier run.
+      - uses: actions/configure-pages@v6
+        with:
+          enablement: true
+
+      # songs.json est régénéré à chaque déploiement : ajouter un dossier
+      # dans songs/ suffit, rien d'autre à déclarer.
+      - name: Build static site
+        run: |
+          php songs.php > songs.json
+          mkdir _site
+          rsync -a \
+            --exclude '.git*' \
+            --exclude '_site' \
+            --exclude '*.md' \
+            --exclude '.htaccess' \
+            --exclude 'songs.php' \
+            ./ _site/
+
+      - uses: actions/upload-pages-artifact@v5
+        with:
+          path: _site
+
+      - id: deployment
+        uses: actions/deploy-pages@v5

@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="robots" content="noindex, nofollow">
+    <title>KSH Viewer</title>
+    <link rel="stylesheet" href="assets/css/viewer.css">
+</head>
+<body>
+    <aside class="sidebar" id="sidebar">
+        <header class="sidebar-header">
+            <div>
+                <h1>KSH Viewer</h1>
+                <p>Pick a song, then a difficulty</p>
+            </div>
+            <button type="button" id="close-sidebar" class="btn btn-small">Close</button>
+        </header>
+        <div class="song-list" id="song-list">Loading songs…</div>
+    </aside>
+
+    <main class="viewer">
+        <div class="topbar">
+            <div class="popover-anchor">
+                <button type="button" id="open-load" class="btn"
+                        aria-haspopup="true" aria-expanded="false">Load…</button>
+                <div class="popover" id="load-popover" hidden>
+                    <form id="local-form" class="local-form">
+                        <p class="popover-section">Chart</p>
+                        <label class="control-group">
+                            Audio
+                            <input type="file" id="local-audio" accept="audio/*,.ogg,.mp3,.wav">
+                        </label>
+                        <label class="control-group">
+                            Chart
+                            <input type="file" id="local-ksh" accept=".ksh">
+                        </label>
+                        <button type="submit" class="btn">Preview</button>
+                        <p class="popover-hint">Files stay in the browser — nothing is uploaded.</p>
+                    </form>
+
+                    <div class="popover-divider"></div>
+                    <p class="popover-section">Local songs folder</p>
+                    <input type="file" id="local-folder" webkitdirectory hidden>
+                    <button type="button" id="pick-folder" class="btn">Pick a songs/ folder</button>
+                    <p class="popover-hint">Every subfolder holding a .ksh chart shows up in the
+                        songs list (several .ksh = several difficulties) — nothing is uploaded.</p>
+
+                    <div class="popover-divider"></div>
+                    <p class="popover-section">Browse</p>
+                    <button type="button" id="browse-songs" class="btn">Browse the songs list</button>
+                </div>
+            </div>
+            <div class="popover-anchor">
+                <button type="button" id="open-video" class="btn"
+                        aria-haspopup="true" aria-expanded="false">Video</button>
+                <div class="popover" id="video-popover" hidden>
+                    <p class="popover-section">Video background</p>
+                    <label class="control-group">
+                        Video
+                        <input type="file" id="local-video" accept="video/*,.mp4,.webm,.mov">
+                    </label>
+                    <button type="button" id="remove-video" class="btn" hidden>Remove video</button>
+                    <p class="popover-hint">Muted background in centered cover, synced to the
+                        loaded chart — applied as soon as a file is picked.</p>
+                </div>
+            </div>
+            <div class="popover-anchor topbar-right">
+                <button type="button" id="open-settings" class="btn"
+                        aria-haspopup="true" aria-expanded="false">Settings</button>
+                <div class="popover popover-right" id="settings-popover" hidden>
+                    <label class="control-group">
+                        Approach speed
+                        <input type="number" id="speed" min="50" max="2000" step="10" value="700"
+                               autocomplete="off">
+                    </label>
+                    <label class="control-group">
+                        Volume
+                        <input type="range" id="volume" min="0" max="1" step="0.01"
+                               value="0.7" class="volume">
+                    </label>
+                    <label class="control-group">
+                        Playback
+                        <input type="range" id="rate" min="0.25" max="3" step="0.05" value="1"
+                               class="rate-slider">
+                        <span id="rate-value" class="rate-value">1.00×</span>
+                    </label>
+                    <div class="control-group">
+                        Camera FX
+                        <button type="button" id="effects" class="btn btn-small"
+                                aria-pressed="true">On</button>
+                    </div>
+                    <div class="control-group">
+                        HUD info
+                        <button type="button" id="hud-toggle" class="btn btn-small"
+                                aria-pressed="true">On</button>
+                    </div>
+                    <div class="control-group">
+                        Assist tick
+                        <button type="button" id="assist-tick" class="btn btn-small"
+                                aria-pressed="false">Off</button>
+                    </div>
+                    <div class="control-group">
+                        Density bar
+                        <button type="button" id="density-toggle" class="btn btn-small"
+                                aria-pressed="false">Off</button>
+                    </div>
+                </div>
+            </div>
+            <button type="button" id="toggle-flat" class="btn"
+                    aria-controls="flatpanel" aria-expanded="true">Chart 2D</button>
+        </div>
+
+        <div class="viewer-stage">
+            <video id="bg-video" class="bg-video" muted playsinline
+                   disablepictureinpicture hidden></video>
+            <canvas id="viewer-canvas"></canvas>
+
+            <div class="hud">
+                <div class="hud-song">
+                    <span class="hud-diff" id="hud-diff"></span>
+                    <div>
+                        <div class="hud-title" id="hud-title">No chart loaded</div>
+                        <div class="hud-artist" id="hud-artist"></div>
+                        <div class="hud-effect" id="hud-effect"></div>
+                    </div>
+                </div>
+                <div class="hud-stats">
+                    <div>BPM <strong id="hud-bpm">—</strong></div>
+                    <div>Measure <strong id="hud-measure">—</strong></div>
+                    <div id="hud-time">0:00 / 0:00</div>
+                    <div>FPS <strong id="hud-fps">—</strong></div>
+                </div>
+            </div>
+
+            <div class="viewer-message" id="viewer-message" hidden></div>
+
+            <button type="button" id="camera-reset" class="btn stage-btn stage-btn--left"
+                    hidden>Reset camera</button>
+            <button type="button" id="fullscreen"
+                    class="btn stage-btn stage-btn--right">Fullscreen</button>
+        </div>
+
+        <div class="controls is-disabled" id="controls">
+            <button type="button" id="play" class="btn btn-play needs-chart">Play</button>
+            <button type="button" id="open-stats" class="btn needs-chart">Stats</button>
+            <div class="seek-stack needs-chart">
+                <div class="progress" id="progress">
+                    <div class="progress-fill" id="progress-fill"></div>
+                    <div class="progress-tip" id="progress-tip" hidden></div>
+                </div>
+                <canvas id="density" class="density" hidden></canvas>
+            </div>
+        </div>
+
+        <footer class="help">
+            Space: play/pause · ←/→: ±5 s · ↑/↓: approach speed · drag: orbit camera · wheel: zoom
+        </footer>
+
+
+        <div class="modal-overlay" id="stats-modal" hidden>
+            <div class="modal" role="dialog" aria-label="Chart statistics">
+                <header class="modal-header">
+                    <div>
+                        <h2 class="modal-title" id="stats-title">Chart stats</h2>
+                        <p class="modal-subtitle" id="stats-subtitle"></p>
+                    </div>
+                    <button type="button" id="close-stats" class="btn btn-small">Close</button>
+                </header>
+                <div class="modal-body">
+                    <dl class="stats-grid" id="stats-figures"></dl>
+                    <div class="stats-charts">
+                        <figure class="stats-chart stats-chart--tall">
+                            <figcaption>Profile radar (approximated)</figcaption>
+                            <canvas id="stats-radar"></canvas>
+                        </figure>
+                        <figure class="stats-chart">
+                            <figcaption>Notes per second</figcaption>
+                            <canvas id="stats-nps"></canvas>
+                        </figure>
+                        <figure class="stats-chart stats-chart--slim">
+                            <figcaption>BPM timeline</figcaption>
+                            <canvas id="stats-bpm"></canvas>
+                        </figure>
+                        <figure class="stats-chart">
+                            <figcaption>Hand balance (left hand up, right hand down)</figcaption>
+                            <canvas id="stats-hands"></canvas>
+                        </figure>
+                        <figure class="stats-chart">
+                            <figcaption>Notes per lane</figcaption>
+                            <canvas id="stats-lanes"></canvas>
+                        </figure>
+                        <figure class="stats-chart stats-chart--slim">
+                            <figcaption>Laser coverage (time with an active laser)</figcaption>
+                            <canvas id="stats-laser"></canvas>
+                        </figure>
+                        <figure class="stats-chart">
+                            <figcaption>Note spacing (snap)</figcaption>
+                            <canvas id="stats-snap"></canvas>
+                            <p class="stats-note" id="stats-snap-note"></p>
+                        </figure>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <aside class="flatpanel is-open" id="flatpanel">
+        <div class="flatpanel-resizer" id="flat-resizer" title="Drag to resize"></div>
+        <header class="flatpanel-header">
+            <span>Chart 2D</span>
+            <div class="flatpanel-actions">
+                <label class="control-group" title="Vertical zoom (measures per column)">
+                    Zoom
+                    <input type="range" id="flat-zoom" min="8" max="44" step="2" value="28"
+                           class="zoom-slider">
+                </label>
+                <button type="button" id="export-png" class="btn btn-small">PNG</button>
+                <label class="control-group">
+                    <input type="checkbox" id="flat-follow" checked>
+                    Follow
+                </label>
+            </div>
+        </header>
+        <canvas class="flat-canvas" id="flat-canvas"></canvas>
+        <footer class="flatpanel-help">wheel/drag: scroll · click: seek</footer>
+    </aside>
+
+    <script type="module" src="assets/js/main.js"></script>
+</body>
+</html>

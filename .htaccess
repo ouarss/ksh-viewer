@@ -1,0 +1,17 @@
+# Keep project internals off the web (only the viewer UI, its assets and songs/ are served)
+# Dotfiles cover .git, .htaccess and .gitignore.
+RedirectMatch 404 \.md$
+RedirectMatch 404 (^|/)docs/
+RedirectMatch 404 (^|/)\.
+Options -Indexes
+
+<IfModule mod_headers.c>
+    Header set X-Content-Type-Options "nosniff"
+
+    # Dev tool: scripts/styles/pages must always revalidate, otherwise the
+    # browser keeps stale ES modules after an update (e.g. new methods in
+    # viewer3d.js while main.js is fresh -> TypeError)
+    <FilesMatch "\.(js|css|html)$">
+        Header set Cache-Control "no-cache"
+    </FilesMatch>
+</IfModule>
